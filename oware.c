@@ -17,17 +17,48 @@ void initialize_board() {
 }
 
 // Print the current state of the board
+// Print the current state of the board
 void print_board() {
-    printf("\nPlayer 2 pits:\n");
+    printf("\n");
+    
+    // Afficher les indices de pits en haut
+    printf(" ");
+    for (int i = 1; i <= PITS; i++) {
+        printf("[%d] ", i);
+    }
+    printf("\n");
+
+    // Afficher la première ligne du tableau
+    printf("+---+---+---+---+---+---+\n");
+
+    // Afficher les valeurs des pits pour Player 2
+    printf("|");
     for (int i = PITS - 1; i >= 0; i--) {
-        printf("  %d ", board[PLAYER2][i]);
+        printf(" %d |", board[PLAYER2][i]);
     }
-    printf("\n-----------------------\n");
+    printf("\n");
+
+    // Afficher la ligne de séparation
+    printf("+---+---+---+---+---+---+\n");
+
+    // Afficher les valeurs des pits pour Player 1
+    printf("|");
     for (int i = 0; i < PITS; i++) {
-        printf("  %d ", board[PLAYER1][i]);
+        printf(" %d |", board[PLAYER1][i]);
     }
-    printf("\nPlayer 1 pits:\n");
+    printf("\n");
+
+    // Afficher la ligne de séparation
+    printf("+---+---+---+---+---+---+\n");
+
+    // Afficher les indices de pits en bas
+    printf(" ");
+    for (int i = 1; i <= PITS; i++) {
+        printf("[%d] ", i);
+    }
+    printf("\n");
 }
+
 
 // Check if the player has valid moves (i.e., any seeds in their pits)
 int has_valid_moves(int player) {
