@@ -22,6 +22,9 @@ void* handle_client(void* arg) {
     client_t* client = (client_t*)arg;
     char buffer[BUFFER_SIZE] = {0};
 
+    send(client->socket_fd, "available commands: bla bla bla \n", 40, 0);
+
+
     // Communication loop
     while (1) {
         memset(buffer, 0, BUFFER_SIZE); // Clear the buffer
@@ -44,7 +47,7 @@ void* handle_client(void* arg) {
             // Placeholder for message functionality
             send(client->socket_fd, "Message command received.\n", 26, 0);
         }
-        else if (strncmp(buffer, "/see_users", 11) == 0) {
+        else if (strncmp(buffer, "/see_users", 10) == 0) {
             see_users(client);
         }
         else if (strncmp(buffer, "/login", 6) == 0){
@@ -53,13 +56,14 @@ void* handle_client(void* arg) {
         else if (strncmp(buffer, "/game", 5) == 0) {
             send_game_request(client);
         }
-        else if (strncmp(buffer, "/accept", 8) == 0) {
+        else if (strncmp(buffer, "/accept", 7) == 0) {
             accept_game_request(client);
         }
         else if (strncmp(buffer, "/help", 5) == 0){
             send(client->socket_fd, "available commands: bla bla bla \n", 40, 0);
         }
         else {
+            printf("unrecognized command: %s", buffer);
             send(client->socket_fd, "Unknown command.\n", 17, 0);
         }
     }
