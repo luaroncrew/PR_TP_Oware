@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
                 printf("Server closed the connection or error occurred\n");
                 break;
             }
-            printf("Message from server: %s\n", buffer);
+            printf("%s\n", buffer);
         }
 
         // If there is user input (stdin is ready to read)

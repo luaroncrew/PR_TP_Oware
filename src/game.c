@@ -15,26 +15,58 @@ void initialize_board(game_t* game) {
 }
 
 // Print the current state of the board for a client
-void print_board(game_t* game, client_t* client) {
+void print_board(game_t* game) {
     char buffer[BUFFER_SIZE];
 
-    // Display board for Player 2's pits (top row)
-    snprintf(buffer, sizeof(buffer), "\nPlayer 2 pits:\n");
-    send(client->socket_fd, buffer, strlen(buffer), 0);
+    // determine which player's turn it is
+    client_t* current_player = (game->status == PLAYER1_TURN) ? game->player1 : game->player2;
+
+    // notify the current player it's their turn
+    send(current_player->socket_fd, "\n-------Your turn--------\n", 10, 0);
+
+
+    // send the board to the player 1
+    // display the part of the bord of player 2 (upper row)
+    snprintf(buffer, sizeof(buffer), "\nPlayer %s pits:\n", game->player2->username);
+    send(game->player1->socket_fd, buffer, strlen(buffer), 0);
     for (int i = PITS - 1; i >= 0; i--) {
         snprintf(buffer, sizeof(buffer), "  %d ", game->board[PLAYER2][i]);
-        send(client->socket_fd, buffer, strlen(buffer), 0);
+        send(game->player1->socket_fd, buffer, strlen(buffer), 0);
     }
 
-    // Display Player 1's pits (bottom row)
+    // send delimiter
     snprintf(buffer, sizeof(buffer), "\n-----------------------\n");
-    send(client->socket_fd, buffer, strlen(buffer), 0);
+    send(game->player1->socket_fd, buffer, strlen(buffer), 0);
+
+    // display the part of the board of player 1 (lower row)
     for (int i = 0; i < PITS; i++) {
         snprintf(buffer, sizeof(buffer), "  %d ", game->board[PLAYER1][i]);
-        send(client->socket_fd, buffer, strlen(buffer), 0);
+        send(game->player1->socket_fd, buffer, strlen(buffer), 0);
     }
-    snprintf(buffer, sizeof(buffer), "\nPlayer 1 pits:\n");
-    send(client->socket_fd, buffer, strlen(buffer), 0);
+    snprintf(buffer, sizeof(buffer), "\nPlayer %s pits:\n", game->player1->username);
+    send(game->player1->socket_fd, buffer, strlen(buffer), 0);
+
+
+    // send the board to the player 2
+    // display the part of the bord of player 1 (upper row)
+    snprintf(buffer, sizeof(buffer), "\nPlayer %s pits:\n", game->player1->username);
+    send(game->player2->socket_fd, buffer, strlen(buffer), 0);
+    for (int i = PITS - 1; i >= 0; i--) {
+        snprintf(buffer, sizeof(buffer), "  %d ", game->board[PLAYER1][i]);
+        send(game->player2->socket_fd, buffer, strlen(buffer), 0);
+    }
+
+    // send delimiter
+    snprintf(buffer, sizeof(buffer), "\n-----------------------\n");
+    send(game->player2->socket_fd, buffer, strlen(buffer), 0);
+
+    // display the part of the board of player 2 (lower row)
+    for (int i = 0; i < PITS; i++) {
+        snprintf(buffer, sizeof(buffer), "  %d ", game->board[PLAYER2][i]);
+        send(game->player2->socket_fd, buffer, strlen(buffer), 0);
+    }
+    snprintf(buffer, sizeof(buffer), "\nPlayer %s pits:\n", game->player2->username);
+    send(game->player2->socket_fd, buffer, strlen(buffer), 0);
 }
 
 // Capture seeds after sowing
@@ -139,7 +171,7 @@ void play_game(game_t* game) {
         client_t* current_player = (game->status == PLAYER1_TURN) ? game->player1 : game->player2;
 
         // Print board for both players
-        print_board(game, current_player);
+        print_board(game);
 
         // Get the move from the current player
         int move = get_move(current_player, game);

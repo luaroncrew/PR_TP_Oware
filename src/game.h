@@ -35,7 +35,7 @@ typedef struct {
 void initialize_board(game_t* game);
 
 // Print the current board state to a player's socket
-void print_board(game_t* game, client_t* client);
+void print_board(game_t* game);
 
 // Check if a player has valid moves left
 int has_valid_moves(int player);
