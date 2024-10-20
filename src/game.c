@@ -79,6 +79,15 @@ void capture_seeds(game_t* game, int player, int pit) {
     }
 }
 
+int has_no_seeds(game_t* game, int player) {
+    for (int i = 0; i < PITS; i++) {
+        if (game->board[player][i] > 0) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
 // Sow the seeds from the chosen pit
 void sow_seeds(game_t* game, int player, int pit) {
     int seeds = game->board[player][pit];
@@ -104,9 +113,21 @@ void sow_seeds(game_t* game, int player, int pit) {
         current_pit++;
     }
 
-    // Check if the last seed was sown in the opponent's pits for capturing
+    // Vérification pour capturer les graines
     if (current_player != player && current_pit > 0) {
         capture_seeds(game, player, current_pit - 1);
+    }
+
+    // Nourrir l'adversaire s'il n'a plus de graines
+    int opponent = (player == PLAYER1) ? PLAYER2 : PLAYER1;
+    if (has_no_seeds(game, opponent)) {
+        // Si l'adversaire n'a plus de graines, il faut semer dans son camp
+        for (int i = 0; i < PITS; i++) {
+            if (game->board[player][i] > 1) {
+                sow_seeds(game, player, i);  // Réalise un coup permettant à l'adversaire de recevoir des graines
+                break;
+            }
+        }
     }
 }
 
