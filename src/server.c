@@ -66,6 +66,30 @@ void* handle_client(void* arg) {
             join_game(client);
             break;
         }
+        else if (strncmp(buffer, "/disconnect", 11) == 0){
+            disconnect(client, buffer);
+            break;
+        }
+        else if (strncmp(buffer, "/reload", 7) == 0) {
+            list_saved_opponents(client);
+
+            memset(buffer, 0, BUFFER_SIZE);
+            int valread = recv(client->socket_fd, buffer, BUFFER_SIZE, 0);
+            int opponent_choice = atoi(buffer);
+
+            client_t* opponent = get_opponent_by_choice(client, opponent_choice);
+            if (opponent != NULL) {
+                game_t* saved_game = load_saved_game(client, opponent);
+                if (saved_game != NULL) {
+                    send(client->socket_fd, "Game reloaded.\n", 15, 0);
+                    play_game(saved_game, client);
+                } else {
+                    send(client->socket_fd, "No saved game found for the selected opponent.\n", 47, 0);
+                }
+            } else {
+                send(client->socket_fd, "Invalid opponent choice.\n", 25, 0);
+            }
+        }
         else {
             printf("unrecognized command: %s", buffer);
             send(client->socket_fd, "Unknown command.\n", 17, 0);

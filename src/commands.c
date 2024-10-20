@@ -9,6 +9,10 @@
 #define MAX_GAME_REQUESTS 10
 #define MAX_GAMES 10
 
+#define MAX_SAVED_GAMES 10
+
+saved_game_t saved_games[MAX_SAVED_GAMES];
+int saved_game_count = 0;
 
 typedef struct {
     client_t* challenger;  // Pointer to the challenger client
@@ -143,6 +147,7 @@ void accept_game_request(client_t* client) {
     char buffer[10]; // Buffer to hold the user's response
     recv(client->socket_fd, buffer, sizeof(buffer), 0);
     int request_number = atoi(buffer);
+    
 
     // Check if the request number is valid
     if (request_number < 1 || request_number > valid_request_count) {
@@ -277,6 +282,100 @@ void join_game(client_t * client) {
 
     play_game(client_game, client);
 }
+
+void disconnect(client_t* client, char* buffer) {
+    // Identifier la partie de ce client et sauvegarder l'état
+    for (int i = 0; i < current_game_count; i++) {
+        game_t* game = current_games[i];
+        if (game->player1 == client || game->player2 == client) {
+            save_game_state(game, game->player1, game->player2, game->status);
+            printf("Game saved upon %s's disconnection.\n", client->username);
+            break;
+        }
+    }
+
+    // Libérer les ressources du client
+    printf("Client %s disconnected.\n", client->username);
+    close(client->socket_fd);
+    free(client);
+}
+
+void reconnect(client_t* client) {
+    for (int i = 0; i < saved_game_count; i++) {
+        saved_game_t* saved_game = &saved_games[i];
+        if (strcmp(saved_game->player1->username, client->username) == 0 ||
+            strcmp(saved_game->player2->username, client->username) == 0) {
+            printf("Resuming saved game for %s.\n", client->username);
+            play_game(saved_game->game, client);  // Reprendre la partie
+            break;
+        }
+    }
+}
+
+void save_game_state(game_t* game, client_t* player1, client_t* player2, int current_turn) {
+    if (saved_game_count >= MAX_SAVED_GAMES) {
+        printf("Maximum number of saved games reached.\n");
+        return;
+    }
+
+    saved_game_t* saved_game = &saved_games[saved_game_count++];
+    saved_game->game = game;
+    saved_game->player1 = player1;
+    saved_game->player2 = player2;
+    saved_game->player_turn = current_turn;
+
+    printf("Game between %s and %s has been saved.\n", player1->username, player2->username);
+}
+
+game_t* load_saved_game(client_t* player1, client_t* player2) {
+    for (int i = 0; i < saved_game_count; i++) {
+        if ((saved_games[i].player1 == player1 && saved_games[i].player2 == player2) ||
+            (saved_games[i].player1 == player2 && saved_games[i].player2 == player1)) {
+            printf("Resuming game between %s and %s.\n", player1->username, player2->username);
+            return saved_games[i].game;
+        }
+    }
+
+    printf("No saved game found for %s and %s.\n", player1->username, player2->username);
+    return NULL;
+}
+
+void list_saved_opponents(client_t* client) {
+    int opponent_count = 0;
+
+    send(client->socket_fd, "Select an opponent to reload the game:\n", 40, 0);
+    
+    for (int i = 0; i < saved_game_count; i++) {
+        if (saved_games[i].player1 == client || saved_games[i].player2 == client) {
+            client_t* opponent = (saved_games[i].player1 == client) ? saved_games[i].player2 : saved_games[i].player1;
+            char message[BUFFER_SIZE];
+            snprintf(message, BUFFER_SIZE, "%d. %s\n", opponent_count + 1, opponent->username);
+            send(client->socket_fd, message, strlen(message), 0);
+            opponent_count++;
+        }
+    }
+
+    if (opponent_count == 0) {
+        send(client->socket_fd, "No saved games found.\n", 22, 0);
+    }
+}
+
+client_t* get_opponent_by_choice(client_t* client, int choice) {
+    int opponent_count = 0;
+
+    for (int i = 0; i < saved_game_count; i++) {
+        if (saved_games[i].player1 == client || saved_games[i].player2 == client) {
+            client_t* opponent = (saved_games[i].player1 == client) ? saved_games[i].player2 : saved_games[i].player1;
+            if (opponent_count + 1 == choice) {
+                return opponent;
+            }
+            opponent_count++;
+        }
+    }
+
+    return NULL;
+}
+
 
 
 int is_logged_in(client_t* client) {
