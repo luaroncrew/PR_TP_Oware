@@ -10,7 +10,8 @@
 
 typedef struct {
     client_t* challenger;  // Pointer to the challenger client
-    client_t* challenged;   // Pointer to the challenged client
+    client_t* challenged; // Pointer to the challenged client
+    int accepted; // Flag to indicate if the request has been accepted
 } game_request_t;
 
 
@@ -132,6 +133,8 @@ void accept_game_request(client_t* client) {
 
     // Add the new game to the server's current_games array
     current_games[current_game_count++] = new_game;
+    // Mark the request as accepted
+    game_requests[selected_request_index].accepted = 1;
 
     // Remove the game request from the list
     for (int i = selected_request_index; i < game_request_count - 1; i++) {
@@ -139,7 +142,7 @@ void accept_game_request(client_t* client) {
     }
     game_request_count--;
 
-    play_game(new_game); // Start the game
+    play_game(new_game, client); // Start the game
     return;
 }
 
@@ -182,7 +185,7 @@ void send_game_request(client_t* client) {
 
     int selection = atoi(buffer); // Convert the input to an integer
     if (selection < 1 || selection > count) {
-        send(client->socket_fd, "Invalid selection.\n", 19, 0);
+        send(client->socket_fd, "Invalid selection. You're back in the main menu \n", 19, 0);
         return;
     }
 
@@ -190,16 +193,39 @@ void send_game_request(client_t* client) {
     int selected_index = available_users[selection - 1];
     client_t* opponent = clients[selected_index];
 
-    printf("opponent : %s, current client: %s", opponent->username, client->username);
 
     // Store the game request
     game_requests[game_request_count].challenger = client;
     game_requests[game_request_count].challenged = opponent;
     // Notify both the challenger and the opponent
     game_request_count++;
+
+    // construct the notification message for the challenged person
+    send(opponent->socket_fd, "You have received a game request.\n", 33, 0);
+
+    // Notify the challenger
     send(client->socket_fd, "Game request sent.\n", 20, 0);
     return;
+}
 
+void join_game(client_t * client) {
+    game_t * client_game;
+
+    // find the game where the client is the challenger
+    for (int i = 0; i < current_game_count; i++) {
+        if (current_games[i]->player1 == client) {
+            client_game = current_games[i];
+            break;
+        }
+    }
+
+    // if no game found, go to the main menu
+    if (client_game == NULL) {
+        send(client->socket_fd, "You are not in a game.\n", 23, 0);
+        return;
+    }
+
+    play_game(client_game, client);
 }
 
 

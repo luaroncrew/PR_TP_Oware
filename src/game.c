@@ -22,7 +22,7 @@ void print_board(game_t* game) {
     client_t* current_player = (game->status == PLAYER1_TURN) ? game->player1 : game->player2;
 
     // notify the current player it's their turn
-    send(current_player->socket_fd, "\n-------Your turn--------\n", 10, 0);
+    send(current_player->socket_fd, "\n-------Your turn--------\n", 30, 0);
 
 
     // send the board to the player 1
@@ -165,22 +165,25 @@ void end_game(game_t* game) {
 }
 
 // Main game loop for each game instance
-void play_game(game_t* game) {
+void play_game(game_t* game, client_t* client) {
     while (!is_game_over(game)) {
         // Determine which player's turn it is
         client_t* current_player = (game->status == PLAYER1_TURN) ? game->player1 : game->player2;
 
-        // Print board for both players
-        print_board(game);
+        if (current_player->socket_fd == client->socket_fd) {
+            print_board(game);
+            // Print board for both players
+            print_board(game);
 
-        // Get the move from the current player
-        int move = get_move(current_player, game);
+            // Get the move from the current player
+            int move = get_move(current_player, game);
 
-        // Sow the seeds and proceed with the game
-        sow_seeds(game, (game->status == PLAYER1_TURN) ? PLAYER1 : PLAYER2, move);
+            // Sow the seeds and proceed with the game
+            sow_seeds(game, (game->status == PLAYER1_TURN) ? PLAYER1 : PLAYER2, move);
 
-        // Switch turns
-        game->status = (game->status == PLAYER1_TURN) ? PLAYER2_TURN : PLAYER1_TURN;
+            // Switch turns
+            game->status = (game->status == PLAYER1_TURN) ? PLAYER2_TURN : PLAYER1_TURN;
+        }
     }
 
     // Game over, calculate the final scores and announce the result
