@@ -43,6 +43,9 @@ int has_valid_moves(int player);
 // Capture seeds after a move is made
 void capture_seeds(game_t* game, int player, int pit);
 
+// Check if a player still have any seed
+int has_no_seeds(game_t* game, int player);
+
 // Sow seeds starting from the chosen pit and handle game logic
 void sow_seeds(game_t* game, int player, int pit);
 
