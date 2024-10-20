@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
+
 
 #include "commands.h"
 #include "game.h"
@@ -38,19 +40,67 @@ void see_users(client_t* client) {
     send(client->socket_fd, user_list, strlen(user_list), 0);
 }
 
-// log in user
+
+// Function to trim trailing spaces from a string
+void trim_trailing_spaces(char* str) {
+    int n = strlen(str);
+    while (n > 0 && isspace((unsigned char)str[n - 1])) {
+        n--;
+    }
+    str[n] = '\0';
+}
+
+// Modified login_procedure function
 void login_procedure(client_t* client) {
     // Prompt for username
     send(client->socket_fd, "Please enter your username: \n", 36, 0);
-    // Receive the username from client
-    recv(client->socket_fd, client->username, sizeof(client->username), 0);
-    // Ensure the username is null-terminated to avoid issues
-    client->username[strcspn(client->username, "\n")] = 0;  // Removing newline character, if any
+    // Create a temporary variable to store the username
+    char username[50] = {0}; // Initialize with zeros
+
+    // Read the username from the client
+    int bytes_received = recv(client->socket_fd, username, sizeof(username) - 1, 0); // Leave space for null-terminator
+    if (bytes_received < 0) {
+        perror("recv failed");
+        return;
+    }
+    username[bytes_received] = '\0'; // Ensure null-termination
+
+    // Trim trailing spaces from the entered username
+    trim_trailing_spaces(username);
+
+    // Ensure the username is not taken
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i] == NULL) {
+            continue;
+        }
+
+        // Trim trailing spaces from the existing username
+        char trimmed_client_username[50];
+        strncpy(trimmed_client_username, clients[i]->username, sizeof(trimmed_client_username) - 1);
+        trimmed_client_username[sizeof(trimmed_client_username) - 1] = '\0'; // Ensure null-termination
+        trim_trailing_spaces(trimmed_client_username);
+
+        printf("Usernames to compare: '%s' and '%s'\n", trimmed_client_username, username);
+
+        // Compare the trimmed usernames
+        if (strcmp(trimmed_client_username, username) == 0) {
+            send(client->socket_fd, "Username already taken. Please try again.\n", 42, 0);
+            username[0] = '\0'; // Reset the username
+            return;
+        }
+    }
+
+    // Assign the username to the client
+    strncpy(client->username, username, sizeof(client->username) - 1);
+    client->username[sizeof(client->username) - 1] = '\0'; // Ensure null-termination
+
     // Construct the welcome message
     char welcome_message[BUFFER_SIZE];
     snprintf(welcome_message, sizeof(welcome_message), "Welcome, %s!\n", client->username);
+
     // Send the personalized welcome message to the client
     send(client->socket_fd, welcome_message, strlen(welcome_message), 0);
+
     // Log the connection on the server side
     printf("User connected: %s\n", client->username);
 }
@@ -228,4 +278,8 @@ void join_game(client_t * client) {
     play_game(client_game, client);
 }
 
+
+int is_logged_in(client_t* client) {
+    return client->username[0] != '\0';
+}
 
