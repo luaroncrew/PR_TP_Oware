@@ -62,6 +62,10 @@ void* handle_client(void* arg) {
         else if (strncmp(buffer, "/help", 5) == 0){
             send(client->socket_fd, "available commands: bla bla bla \n", 40, 0);
         }
+        else if (strncmp(buffer, "/join", 5) == 0){
+            join_game(client);
+            break;
+        }
         else {
             printf("unrecognized command: %s", buffer);
             send(client->socket_fd, "Unknown command.\n", 17, 0);

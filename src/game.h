@@ -56,6 +56,6 @@ int is_game_over(game_t* game);
 void end_game(game_t* game);
 
 // Main game loop to play the game
-void play_game(game_t* game);
+void play_game(game_t* game, client_t * client);
 
 #endif // GAME_H

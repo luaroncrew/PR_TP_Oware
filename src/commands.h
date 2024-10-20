@@ -15,5 +15,6 @@ void see_users(client_t* client);
 void login_procedure(client_t* client);
 void send_game_request(client_t* client);
 void accept_game_request(client_t* client);
+void join_game(client_t* client);
 
 #endif // COMMANDS_H
