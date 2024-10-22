@@ -172,14 +172,14 @@ void play_game(game_t* game, client_t* client) {
 
         if (current_player->socket_fd == client->socket_fd) {
             print_board(game);
-            // Print board for both players
-            print_board(game);
 
             // Get the move from the current player
             int move = get_move(current_player, game);
 
             // Sow the seeds and proceed with the game
             sow_seeds(game, (game->status == PLAYER1_TURN) ? PLAYER1 : PLAYER2, move);
+            
+            save_game_to_file(game);
 
             // Switch turns
             game->status = (game->status == PLAYER1_TURN) ? PLAYER2_TURN : PLAYER1_TURN;
@@ -189,3 +189,83 @@ void play_game(game_t* game, client_t* client) {
     // Game over, calculate the final scores and announce the result
     end_game(game);
 }
+
+
+
+void save_game_to_file(game_t* game) {
+    FILE* file = fopen(FILENAME, "r");
+    if (file == NULL) {
+        printf("No saved games found.\n");
+        return;
+    }
+
+    game_t* saved_games = malloc(sizeof(game_t) * MAX_SAVED_GAMES);
+    int num_saved_games = 0;
+
+    while (!feof(file)) {
+        game_t* current_game = &saved_games[num_saved_games];
+        current_game->player1 = malloc(sizeof(client_t));
+        current_game->player2 = malloc(sizeof(client_t));
+
+        if (fscanf(file, "Player 1: %s\n", current_game->player1->username) != 1) break;
+        if (fscanf(file, "Player 2: %s\n", current_game->player2->username) != 1) break;
+        fscanf(file, "Scores: %d %d\n", &current_game->player_scores[0], &current_game->player_scores[1]);
+
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < PITS; k++) {
+                if (fscanf(file, "%d", &current_game->board[j][k]) != 1) break;
+            }
+        }
+
+        fscanf(file, "\n");
+        fscanf(file, "Status: %d\n", &current_game->status);
+
+        num_saved_games++;
+    }
+    fclose(file);
+
+    int found = 0;
+    for (int i = 0; i < num_saved_games; i++) {
+        if ((strcmp(saved_games[i].player1->username, game->player1->username) == 0 &&
+             strcmp(saved_games[i].player2->username, game->player2->username) == 0) ||
+            (strcmp(saved_games[i].player1->username, game->player2->username) == 0 &&
+             strcmp(saved_games[i].player2->username, game->player1->username) == 0)) {
+            saved_games[i] = *game;
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found && num_saved_games < MAX_SAVED_GAMES) {
+        saved_games[num_saved_games++] = *game;
+    }
+
+    file = fopen(FILENAME, "w");
+    if (file == NULL) {
+        perror("Error opening file");
+        free(saved_games);
+        return;
+    }
+
+    for (int i = 0; i < num_saved_games; i++) {
+        fprintf(file, "Player 1: %s\n", saved_games[i].player1->username);
+        fprintf(file, "Player 2: %s\n", saved_games[i].player2->username);
+        fprintf(file, "Scores: %d %d\n", saved_games[i].player_scores[0], saved_games[i].player_scores[1]);
+
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < PITS; k++) {
+                fprintf(file, "%d ", saved_games[i].board[j][k]);
+            }
+            fprintf(file, "\n");
+        }
+
+        fprintf(file, "Status: %d\n", saved_games[i].status);
+    }
+
+    fclose(file);
+    free(saved_games);
+}
+
+
+
+

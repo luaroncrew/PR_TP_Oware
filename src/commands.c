@@ -23,7 +23,6 @@ int game_request_count = 0; // Number of current game requests
 game_t * current_games[MAX_GAMES]; // Array to hold current games
 int current_game_count = 0; // Number of current games
 
-
 // Function to display the list of connected users
 void see_users(client_t* client) {
     char user_list[BUFFER_SIZE] = "Connected users:\n";
@@ -103,6 +102,70 @@ void login_procedure(client_t* client) {
 
     // Log the connection on the server side
     printf("User connected: %s\n", client->username);
+
+    game_t* current_game = load_saved_game(client->username);
+
+    if (current_game != NULL) {
+        send(client->socket_fd, "You have a saved game. Waiting for your opponent to connect...\n", 65, 0);
+
+        if(is_user_connected(current_game->player1) && is_user_connected(current_game->player2)) {
+            printf("passe join \n");
+            join_game(client);
+        }
+        else {
+            printf("passe wait\n");
+            wait_for_opponent(current_game, client);
+        }
+    }
+}
+
+bool is_user_connected(client_t* user) {
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i] != NULL) {
+            printf("Checking against connected user: %s\n", clients[i]->username);
+            
+            if (strcmp(clients[i]->username, user->username) == 0) {
+                printf("User %s is connected.\n", user->username);
+                return true;
+            }
+        }
+    }
+    printf("User %s is not connected.\n", user->username);
+    return false;
+}
+
+
+void wait_for_opponent(game_t* saved_game, client_t* player) {
+    client_t* opponent = NULL;
+
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i] != NULL && clients[i] != player) {
+            if (strcmp(clients[i]->username, saved_game->player2->username) == 0) {
+                opponent = clients[i];
+                break;
+            }
+        }
+    }
+
+    while (opponent == NULL) {
+        sleep(1);
+
+        for (int i = 0; i < MAX_CLIENTS; i++) {
+            if (clients[i] != NULL && clients[i] != player) {
+                if (strcmp(clients[i]->username, saved_game->player2->username) == 0) {
+                    opponent = clients[i];
+                    break;
+                }
+            }
+        }
+    }
+
+    char message[BUFFER_SIZE];
+    snprintf(message, sizeof(message), "Opponent %s has connected. Resuming saved game...\n", opponent->username);
+    send(player->socket_fd, message, strlen(message), 0);
+    send(opponent->socket_fd, message, strlen(message), 0);
+
+    play_game(saved_game, player);
 }
 
 
@@ -196,7 +259,59 @@ void accept_game_request(client_t* client) {
     return;
 }
 
+game_t* load_saved_game(const char* username) {
+    FILE* file = fopen(FILENAME, "r");
+    if (file == NULL) {
+        printf("No saved games found.\n");
+        return NULL;
+    }
 
+    game_t* saved_games = malloc(sizeof(game_t) * MAX_SAVED_GAMES);
+    if (saved_games == NULL) {
+        printf("Memory allocation failed\n");
+        return NULL;
+    }
+
+    int num_loaded_games = 0;
+
+    while (!feof(file)) {
+        game_t* current_game = &saved_games[num_loaded_games];
+        current_game->player1 = malloc(sizeof(client_t));
+        current_game->player2 = malloc(sizeof(client_t));
+
+        if (current_game->player1 == NULL || current_game->player2 == NULL) {
+            printf("Memory allocation failed\n");
+            free(saved_games);
+            return NULL;
+        }
+
+        if (fscanf(file, "Player 1: %s\n", current_game->player1->username) != 1) break;
+        if (fscanf(file, "Player 2: %s\n", current_game->player2->username) != 1) break;
+        fscanf(file, "Scores: %d %d\n", &current_game->player_scores[0], &current_game->player_scores[1]);
+
+        for (int j = 0; j < 2; j++) {
+            for (int k = 0; k < PITS; k++) {
+                if (fscanf(file, "%d", &current_game->board[j][k]) != 1) break;
+            }
+        }
+
+        fscanf(file, "\n");
+        fscanf(file, "Status: %d\n", &current_game->status);
+
+        if (strcmp(current_game->player1->username, username) == 0 || 
+            strcmp(current_game->player2->username, username) == 0) {
+            fclose(file);
+            current_games[current_game_count++] = current_game;
+            return current_game;
+        }
+        num_loaded_games++;
+    }
+
+    fclose(file);
+
+    printf("No saved game found for user: %s\n", username);
+    return NULL;
+}
 
 void send_game_request(client_t* client) {
     char buffer[BUFFER_SIZE] = {0};
@@ -263,7 +378,14 @@ void join_game(client_t * client) {
 
     // find the game where the client is the challenger
     for (int i = 0; i < current_game_count; i++) {
-        if (current_games[i]->player1 == client) {
+        if (current_games[i]->player1->username == client->username) {
+            client_game = current_games[i];
+            break;
+        }
+    }
+
+    for (int i = 0; i < current_game_count; i++) {
+        if (current_games[i]->player2->username == client->username) {
             client_game = current_games[i];
             break;
         }

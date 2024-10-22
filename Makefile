@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -Wextra -g
 SRC_DIR = ./src
 OBJ_DIR = obj
-TARGET = bin/server
+TARGET = src/server
 
 # Manually specify all source files
 SRC = $(SRC_DIR)/server.c $(SRC_DIR)/game.c $(SRC_DIR)/commands.c # Add all your source files here

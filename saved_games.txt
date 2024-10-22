@@ -1,0 +1,12 @@
+Player 1: Kirill
+Player 2: Quentin
+Scores: 0 2
+0 5 5 5 5 0 
+5 0 2 7 6 6 
+Status: 1
+Player 1: p1
+Player 2: p2
+Scores: 0 0
+5 1 5 0 6 6 
+5 5 5 0 5 5 
+Status: 0

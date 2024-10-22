@@ -12,6 +12,10 @@
 #define PLAYER1 0
 #define PLAYER2 1
 #define BUFFER_SIZE 1024
+#define SAVE_FILE_NAME "saved_games.txt"
+#define NUM_PITS 12
+#define MAX_SAVED_GAMES 10
+#define FILENAME "saved_games.txt"
 
 // Game status types
 typedef enum {
@@ -58,4 +62,6 @@ void end_game(game_t* game);
 // Main game loop to play the game
 void play_game(game_t* game, client_t * client);
 
-#endif // GAME_H
+void save_game_to_file(game_t* game);
+
+#endif // GAME
