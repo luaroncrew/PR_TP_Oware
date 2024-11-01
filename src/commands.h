@@ -21,7 +21,7 @@ void accept_game_request(client_t* client);
 void join_game(client_t* client);
 void wait_for_opponent(game_t* saved_game, client_t* player);
 bool is_user_connected(client_t* user);
-game_t* load_saved_game(const char* username);
+void load_saved_games();
 
 
 #endif // COMMANDS_H

@@ -14,7 +14,7 @@
 #define BUFFER_SIZE 1024
 #define SAVE_FILE_NAME "saved_games.txt"
 #define NUM_PITS 12
-#define MAX_SAVED_GAMES 10
+#define MAX_SAVED_GAMES 100
 #define FILENAME "saved_games.txt"
 
 // Game status types
@@ -64,4 +64,4 @@ void play_game(game_t* game, client_t * client);
 
 void save_game_to_file(game_t* game);
 
-#endif // GAME
+#endif

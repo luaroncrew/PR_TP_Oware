@@ -113,6 +113,9 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
+    // Load all saved games at startup
+    load_saved_games();
+
     printf("Server is listening on port %d...\n", PORT);
 
     // Accept connections in a loop

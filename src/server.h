@@ -11,7 +11,7 @@
 #define PORT 8083
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 1024
-#define MAX_GAMES 10
+#define MAX_GAMES 100
 
 typedef struct {
     int socket_fd;

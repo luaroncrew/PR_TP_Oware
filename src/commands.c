@@ -2,20 +2,17 @@
 #include <string.h>
 #include <ctype.h>
 
-
 #include "commands.h"
 #include "game.h"
 
-#define MAX_GAME_REQUESTS 10
-#define MAX_GAMES 10
-
+#define MAX_GAME_REQUESTS 1000
+#define MAX_GAMES 100
 
 typedef struct {
     client_t* challenger;  // Pointer to the challenger client
     client_t* challenged; // Pointer to the challenged client
     int accepted; // Flag to indicate if the request has been accepted
 } game_request_t;
-
 
 game_request_t game_requests[MAX_GAME_REQUESTS]; // Array to hold game requests
 int game_request_count = 0; // Number of current game requests
@@ -79,8 +76,6 @@ void login_procedure(client_t* client) {
         trimmed_client_username[sizeof(trimmed_client_username) - 1] = '\0'; // Ensure null-termination
         trim_trailing_spaces(trimmed_client_username);
 
-        printf("Usernames to compare: '%s' and '%s'\n", trimmed_client_username, username);
-
         // Compare the trimmed usernames
         if (strcmp(trimmed_client_username, username) == 0) {
             send(client->socket_fd, "Username already taken. Please try again.\n", 42, 0);
@@ -103,21 +98,45 @@ void login_procedure(client_t* client) {
     // Log the connection on the server side
     printf("User connected: %s\n", client->username);
 
-    game_t* current_game = load_saved_game(client->username);
+    // find the saved game for the client if it exists
+    for (int i = 0; i < current_game_count; i++) {
+        game_t* game = current_games[i];
+        char game_found_message[BUFFER_SIZE];
+        if (strcmp(game->player1->username, client->username) == 0) {
+            // replace with the new client (as pointers and socket_fd may change)
+            game->player1 = client;
 
-    if (current_game != NULL) {
-        send(client->socket_fd, "You have a saved game. Waiting for your opponent to connect...\n", 65, 0);
+            snprintf(
+                    game_found_message,
+                    sizeof(game_found_message),
+                    "an unfinished game was found against %s, joining",
+                    game->player2->username
+                    );
+            // automatically finds the unfinished game and enters the game loop
+            send(client->socket_fd, game_found_message, strlen(game_found_message), 0);
 
-        if(is_user_connected(current_game->player1) && is_user_connected(current_game->player2)) {
-            printf("passe join \n");
             join_game(client);
-        }
-        else {
-            printf("passe wait\n");
-            wait_for_opponent(current_game, client);
+            return;
+        } else if (strcmp(game->player2->username, client->username) == 0) {
+            // replace with the new client (as pointers and socket_fd may change)
+            game->player2 = client;
+
+            snprintf(
+                    game_found_message,
+                    sizeof(game_found_message),
+                    "an unfinished game was found against %s, joining",
+                    game->player1->username
+            );
+            // automatically finds the unfinished game and enters the game loop
+            send(client->socket_fd, game_found_message, strlen(game_found_message), 0);
+
+            // automatically finds the unfinished game and enters the game loop
+            join_game(client);
+            return;
         }
     }
 }
+
 
 bool is_user_connected(client_t* user) {
     for (int i = 0; i < MAX_CLIENTS; i++) {
@@ -259,31 +278,23 @@ void accept_game_request(client_t* client) {
     return;
 }
 
-game_t* load_saved_game(const char* username) {
+
+void load_saved_games() {
     FILE* file = fopen(FILENAME, "r");
     if (file == NULL) {
         printf("No saved games found.\n");
-        return NULL;
+        return;
     }
 
-    game_t* saved_games = malloc(sizeof(game_t) * MAX_SAVED_GAMES);
-    if (saved_games == NULL) {
-        printf("Memory allocation failed\n");
-        return NULL;
-    }
+    while (current_game_count < MAX_GAMES && !feof(file)) {
+        game_t* current_game = malloc(sizeof(game_t));
+        if (current_game == NULL) {
+            printf("Memory allocation failed\n");
+            break;
+        }
 
-    int num_loaded_games = 0;
-
-    while (!feof(file)) {
-        game_t* current_game = &saved_games[num_loaded_games];
         current_game->player1 = malloc(sizeof(client_t));
         current_game->player2 = malloc(sizeof(client_t));
-
-        if (current_game->player1 == NULL || current_game->player2 == NULL) {
-            printf("Memory allocation failed\n");
-            free(saved_games);
-            return NULL;
-        }
 
         if (fscanf(file, "Player 1: %s\n", current_game->player1->username) != 1) break;
         if (fscanf(file, "Player 2: %s\n", current_game->player2->username) != 1) break;
@@ -291,27 +302,25 @@ game_t* load_saved_game(const char* username) {
 
         for (int j = 0; j < 2; j++) {
             for (int k = 0; k < PITS; k++) {
-                if (fscanf(file, "%d", &current_game->board[j][k]) != 1) break;
+                fscanf(file, "%d", &current_game->board[j][k]);
             }
         }
 
-        fscanf(file, "\n");
         fscanf(file, "Status: %d\n", &current_game->status);
 
-        if (strcmp(current_game->player1->username, username) == 0 || 
-            strcmp(current_game->player2->username, username) == 0) {
-            fclose(file);
-            current_games[current_game_count++] = current_game;
-            return current_game;
-        }
-        num_loaded_games++;
+        printf(
+                "game loaded, %s vs %s\n",
+                current_game->player1->username,
+                current_game->player2->username
+                );
+        current_games[current_game_count] = current_game;  // Add the game to the array
+        current_game_count++;
     }
 
     fclose(file);
-
-    printf("No saved game found for user: %s\n", username);
-    return NULL;
+    printf("Loaded %d saved games.\n", current_game_count);
 }
+
 
 void send_game_request(client_t* client) {
     char buffer[BUFFER_SIZE] = {0};

@@ -166,6 +166,7 @@ void end_game(game_t* game) {
 
 // Main game loop for each game instance
 void play_game(game_t* game, client_t* client) {
+
     while (!is_game_over(game)) {
         // Determine which player's turn it is
         client_t* current_player = (game->status == PLAYER1_TURN) ? game->player1 : game->player2;
