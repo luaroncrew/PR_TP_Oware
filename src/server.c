@@ -17,6 +17,7 @@ const char* help_message =
         "/login - Log in to the server with a specified username.\n"
         "/see_users - Display a list of currently logged-in users.\n"
         "/game - Request to start a game with another user.\n"
+        "/chat - Initiate chat with another user.\n"
         "/accept - Accept a game request from another user.\n"
         "/join - Join an available game after a request is accepted.\n"
         "/exit - Disconnect from the server.\n"

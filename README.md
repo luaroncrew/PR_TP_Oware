@@ -20,6 +20,7 @@ This project is multiplayer Oware game implemented in C.
 - Sending and accepting game requests.
 - Saving and loading game states.
 - Handling game logic and user interactions.
+- Users can interract thanks to a chat functionnality
 - And finally, play games
 
 ## How to Build
@@ -47,6 +48,7 @@ When done, and connection is established, the following message will be displaye
 Available commands:
 /login - Log in to the server with a specified username.
 /see_users - Display a list of currently logged-in users.
+/chat - Initiate chat with another user
 /game - Request to start a game with another user.
 /accept - Accept a game request from another user.
 /join - Join an available game after a request is accepted.

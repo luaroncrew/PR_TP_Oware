@@ -1,12 +1,14 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 #include "commands.h"
 #include "game.h"
 
 #define MAX_GAME_REQUESTS 1000
 #define MAX_GAMES 100
+#define BUFFER_SIZE 1024
 
 typedef struct {
     client_t* challenger;  // Pointer to the challenger client
@@ -35,17 +37,6 @@ void see_users(client_t* client) {
     // Send the list of connected users to the requesting client
     send(client->socket_fd, user_list, strlen(user_list), 0);
 }
-
-// Function to initiate chat with another user
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-
-#include "commands.h"
-#include "game.h"
-
-#define BUFFER_SIZE 1024
 
 // Function to initiate chat with another user
 void chat_with_user(client_t* sender) {
