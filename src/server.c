@@ -67,6 +67,9 @@ void* handle_client(void* arg) {
             else
             see_users(client);
         }
+        else if (strncmp(buffer, "/chat", 5) == 0) {
+            chat_with_user(client);
+        }
         else if (strncmp(buffer, "/login", 6) == 0){
             login_procedure(client);
         }

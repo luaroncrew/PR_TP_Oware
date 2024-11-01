@@ -21,6 +21,6 @@ void accept_game_request(client_t* client);
 void join_game(client_t* client);
 void load_saved_games();
 int is_logged_in(client_t* client);
-
+void chat_with_user(client_t* sender);
 
 #endif // COMMANDS_H

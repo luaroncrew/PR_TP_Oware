@@ -36,6 +36,82 @@ void see_users(client_t* client) {
     send(client->socket_fd, user_list, strlen(user_list), 0);
 }
 
+// Function to initiate chat with another user
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#include "commands.h"
+#include "game.h"
+
+#define BUFFER_SIZE 1024
+
+// Function to initiate chat with another user
+void chat_with_user(client_t* sender) {
+    char user_list[BUFFER_SIZE] = "Choose a user to chat with:\n";
+    int available_users[MAX_CLIENTS];
+    int count = 0;
+
+    // List connected users except the sender
+    for (int i = 0; i < MAX_CLIENTS; i++) {
+        if (clients[i] != NULL && clients[i]->socket_fd != sender->socket_fd) {
+            available_users[count++] = i;
+            char line[50];
+            snprintf(line, sizeof(line), "%d - %s\n", count, clients[i]->username);
+            strcat(user_list, line);
+        }
+    }
+
+    // Check if there are users to chat with
+    if (count == 0) {
+        send(sender->socket_fd, "No other users to chat with.\n", 30, 0);
+        return;
+    }
+
+    // Send the list of users to the sender
+    send(sender->socket_fd, user_list, strlen(user_list), 0);
+    send(sender->socket_fd, "Enter the number of the user you want to chat with:\n", 52, 0);
+
+    char buffer[10];
+    int valread = recv(sender->socket_fd, buffer, sizeof(buffer) - 1, 0);  // Leave space for null-terminator
+    if (valread <= 0) {
+        send(sender->socket_fd, "Failed to receive input.\n", 25, 0);
+        return;
+    }
+
+    buffer[valread] = '\0'; // Ensure null-termination for user selection
+
+    int selection = atoi(buffer);
+    if (selection < 1 || selection > count) {
+        send(sender->socket_fd, "Invalid selection.\n", 20, 0);
+        return;
+    }
+
+    // Find the selected user
+    client_t* receiver = clients[available_users[selection - 1]];
+
+    // Prompt sender to enter the message
+    send(sender->socket_fd, "Enter your message:\n", 21, 0);
+    memset(buffer, 0, sizeof(buffer));
+
+    // Receive the message and ensure it is null-terminated
+    valread = recv(sender->socket_fd, buffer, BUFFER_SIZE - 1, 0);  // Use larger buffer size for message
+    if (valread > 0) {
+        buffer[valread] = '\0';  // Ensure null-termination
+
+        // Create message to send
+        char message[BUFFER_SIZE];
+        snprintf(message, sizeof(message), "Message from %s: %s\n", sender->username, buffer);
+
+        // Send message to the selected user
+        send(receiver->socket_fd, message, strlen(message), 0);
+        send(sender->socket_fd, "Message sent!\n", 15, 0);
+    } else {
+        send(sender->socket_fd, "Message not sent. Please try again.\n", 36, 0);
+    }
+}
+
 
 // Function to trim trailing spaces from a string
 void trim_trailing_spaces(char* str) {
