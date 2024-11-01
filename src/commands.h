@@ -19,9 +19,8 @@ void login_procedure(client_t* client);
 void send_game_request(client_t* client);
 void accept_game_request(client_t* client);
 void join_game(client_t* client);
-void wait_for_opponent(game_t* saved_game, client_t* player);
-bool is_user_connected(client_t* user);
 void load_saved_games();
+int is_logged_in(client_t* client);
 
 
 #endif // COMMANDS_H

@@ -1,6 +1,0 @@
-Player 1: Quentin
-Player 2: Kirill
-Scores: 0 0
-1 0 8 0 7 6 
-6 1 6 1 6 6 
-Status: 0

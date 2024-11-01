@@ -138,56 +138,6 @@ void login_procedure(client_t* client) {
 }
 
 
-bool is_user_connected(client_t* user) {
-    for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (clients[i] != NULL) {
-            printf("Checking against connected user: %s\n", clients[i]->username);
-            
-            if (strcmp(clients[i]->username, user->username) == 0) {
-                printf("User %s is connected.\n", user->username);
-                return true;
-            }
-        }
-    }
-    printf("User %s is not connected.\n", user->username);
-    return false;
-}
-
-
-void wait_for_opponent(game_t* saved_game, client_t* player) {
-    client_t* opponent = NULL;
-
-    for (int i = 0; i < MAX_CLIENTS; i++) {
-        if (clients[i] != NULL && clients[i] != player) {
-            if (strcmp(clients[i]->username, saved_game->player2->username) == 0) {
-                opponent = clients[i];
-                break;
-            }
-        }
-    }
-
-    while (opponent == NULL) {
-        sleep(1);
-
-        for (int i = 0; i < MAX_CLIENTS; i++) {
-            if (clients[i] != NULL && clients[i] != player) {
-                if (strcmp(clients[i]->username, saved_game->player2->username) == 0) {
-                    opponent = clients[i];
-                    break;
-                }
-            }
-        }
-    }
-
-    char message[BUFFER_SIZE];
-    snprintf(message, sizeof(message), "Opponent %s has connected. Resuming saved game...\n", opponent->username);
-    send(player->socket_fd, message, strlen(message), 0);
-    send(opponent->socket_fd, message, strlen(message), 0);
-
-    play_game(saved_game, player);
-}
-
-
 void accept_game_request(client_t* client) {
     char response[BUFFER_SIZE];
 
@@ -268,11 +218,16 @@ void accept_game_request(client_t* client) {
     // Mark the request as accepted
     game_requests[selected_request_index].accepted = 1;
 
+    send(new_game->player1->socket_fd, "Game request accepted, please type /join to join the game.\n", 56, 0);
+
     // Remove the game request from the list
     for (int i = selected_request_index; i < game_request_count - 1; i++) {
         game_requests[i] = game_requests[i + 1]; // Shift left
     }
     game_request_count--;
+
+
+    send(new_game->player2->socket_fd, "Game accepted and joined. Waiting for the opponent to join...\n", 56, 0);
 
     play_game(new_game, client); // Start the game
     return;

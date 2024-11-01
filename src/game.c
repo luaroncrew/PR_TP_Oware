@@ -115,13 +115,17 @@ int get_move(client_t* player, game_t * game) {
     char buffer[BUFFER_SIZE];
     int move;
 
-    // Send a prompt to the player
-    snprintf(buffer, sizeof(buffer), "Player %s, choose a pit (1-6): ", player->username);
+    // prompt the player for the move
+    snprintf(buffer, sizeof(buffer), "Player %s, choose a pit (1-6) or (7) to abandon and lose: ", player->username);
     send(player->socket_fd, buffer, strlen(buffer), 0);
 
     // Wait for player's response
     recv(player->socket_fd, buffer, sizeof(buffer), 0);
     move = atoi(buffer) - 1; // Convert to zero-based index
+
+    if (move == 7) {
+        return 7; // Signal that the player wants to abandon
+    }
 
     if (move < 0 || move >= PITS || game->board[game->status][move] == 0) {
         snprintf(buffer, sizeof(buffer), "Invalid move. Try again.\n");
@@ -131,10 +135,17 @@ int get_move(client_t* player, game_t * game) {
     return move;
 }
 
-// Check if the game is over (i.e., no seeds to sow for either player)
+
+// check is someone won (got enough points)
 int is_game_over(game_t* game) {
-    return 0; // Placeholder for now
+    if (game->player_scores[PLAYER1] >= 24 || game->player_scores[PLAYER2] >= 24) {
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
+
 
 // Function to end the game, announce the winner, and clean up the game state
 void end_game(game_t* game) {
@@ -162,11 +173,15 @@ void end_game(game_t* game) {
 
     send(game->player1->socket_fd, buffer, strlen(buffer), 0);
     send(game->player2->socket_fd, buffer, strlen(buffer), 0);
+
+    free(game->player1);
+    free(game->player2);
+    free(game);
 }
+
 
 // Main game loop for each game instance
 void play_game(game_t* game, client_t* client) {
-
     while (!is_game_over(game)) {
         // Determine which player's turn it is
         client_t* current_player = (game->status == PLAYER1_TURN) ? game->player1 : game->player2;
@@ -177,13 +192,22 @@ void play_game(game_t* game, client_t* client) {
             // Get the move from the current player
             int move = get_move(current_player, game);
 
+            // check for abandonment
+            if (move == 7) {
+                game->status = (game->status == PLAYER1_TURN) ? PLAYER2_TURN : PLAYER1_TURN; // Opponent is winner
+                break;
+            }
+
             // Sow the seeds and proceed with the game
             sow_seeds(game, (game->status == PLAYER1_TURN) ? PLAYER1 : PLAYER2, move);
-            
-            save_game_to_file(game);
 
             // Switch turns
             game->status = (game->status == PLAYER1_TURN) ? PLAYER2_TURN : PLAYER1_TURN;
+
+
+            // save the game state on each move
+            save_game_to_file(game);
+
         }
     }
 

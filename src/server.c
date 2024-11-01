@@ -12,7 +12,15 @@
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 1024
 
-
+const char* help_message =
+        "Available commands:\n"
+        "/login - Log in to the server with a specified username.\n"
+        "/see_users - Display a list of currently logged-in users.\n"
+        "/game - Request to start a game with another user.\n"
+        "/accept - Accept a game request from another user.\n"
+        "/join - Join an available game after a request is accepted.\n"
+        "/exit - Disconnect from the server.\n"
+        "/help - Show this list of commands.\n";
 
 // Array to hold connected clients
 client_t* clients[MAX_CLIENTS];
@@ -22,7 +30,7 @@ void* handle_client(void* arg) {
     client_t* client = (client_t*)arg;
     char buffer[BUFFER_SIZE] = {0};
 
-    send(client->socket_fd, "available commands: bla bla bla \n", 40, 0);
+    send(client->socket_fd, help_message, strlen(help_message), 0);
 
 
     // Communication loop
@@ -44,25 +52,46 @@ void* handle_client(void* arg) {
             send(client->socket_fd, "quit\n", 9, 0);
             break; // Break the loop for exit command
         } else if (strncmp(buffer, "/message", 8) == 0) {
-            // Placeholder for message functionality
+            // message not implemented
+            if (!is_logged_in(client)) {
+                send(client->socket_fd, "log in with /login first.\n", 26, 0);
+                continue;
+            }
             send(client->socket_fd, "Message command received.\n", 26, 0);
         }
         else if (strncmp(buffer, "/see_users", 10) == 0) {
+            if (!is_logged_in(client)) {
+                send(client->socket_fd, "log in with /login first.\n", 26, 0);
+                continue;
+            }
+            else
             see_users(client);
         }
         else if (strncmp(buffer, "/login", 6) == 0){
             login_procedure(client);
         }
         else if (strncmp(buffer, "/game", 5) == 0) {
+            if (!is_logged_in(client)) {
+                send(client->socket_fd, "log in with /login first.\n", 26, 0);
+                continue;
+            }
             send_game_request(client);
         }
         else if (strncmp(buffer, "/accept", 7) == 0) {
+            if (!is_logged_in(client)) {
+                send(client->socket_fd, "log in with /login first.\n", 26, 0);
+                continue;
+            }
             accept_game_request(client);
         }
         else if (strncmp(buffer, "/help", 5) == 0){
-            send(client->socket_fd, "available commands: bla bla bla \n", 40, 0);
+            send(client->socket_fd, help_message, strlen(help_message), 0);
         }
         else if (strncmp(buffer, "/join", 5) == 0){
+            if (!is_logged_in(client)) {
+                send(client->socket_fd, "log in with /login first.\n", 26, 0);
+                continue;
+            }
             join_game(client);
             break;
         }
