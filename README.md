@@ -1,6 +1,6 @@
 # Oware Multiplayer
 
-This project is multiplayer Oware game implemented in C. It allows users to connect, challenge each other, and play games. The game state is saved and can be loaded when users reconnect.
+This project is multiplayer Oware game implemented in C. 
 
 ## Project Structure
 
@@ -154,3 +154,5 @@ an unfinished game was found against p1, joining
 ```
 
 and both players are then back in the game loop
+
+There's still a lot of things to improve in this project
